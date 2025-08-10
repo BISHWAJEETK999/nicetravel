@@ -471,4 +471,274 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+import { db } from "./db";
+import { users, destinations, content, contactSubmissions, newsletterSubscriptions, packages, galleryImages } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
+
+export class DbStorage implements IStorage {
+  // User methods
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUserPassword(id: string, newPassword: string): Promise<User | undefined> {
+    const result = await db.update(users)
+      .set({ password: newPassword })
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Destination methods
+  async getDestinations(): Promise<Destination[]> {
+    return await db.select().from(destinations).where(eq(destinations.isActive, true));
+  }
+
+  async getDestinationsByType(type: 'domestic' | 'international'): Promise<Destination[]> {
+    return await db.select().from(destinations)
+      .where(and(eq(destinations.type, type), eq(destinations.isActive, true)));
+  }
+
+  async getDestination(id: string): Promise<Destination | undefined> {
+    const result = await db.select().from(destinations).where(eq(destinations.id, id));
+    return result[0];
+  }
+
+  async createDestination(insertDestination: InsertDestination): Promise<Destination> {
+    const result = await db.insert(destinations).values({
+      ...insertDestination,
+      icon: insertDestination.icon || "bi-geo-alt-fill",
+      isActive: insertDestination.isActive ?? true,
+    }).returning();
+    return result[0];
+  }
+
+  async updateDestination(id: string, updates: Partial<InsertDestination>): Promise<Destination | undefined> {
+    const result = await db.update(destinations)
+      .set(updates)
+      .where(eq(destinations.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDestination(id: string): Promise<boolean> {
+    const result = await db.update(destinations)
+      .set({ isActive: false })
+      .where(eq(destinations.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Content methods
+  async getContent(): Promise<Content[]> {
+    return await db.select().from(content);
+  }
+
+  async getContentByKey(key: string): Promise<Content | undefined> {
+    const result = await db.select().from(content).where(eq(content.key, key));
+    return result[0];
+  }
+
+  async setContent(insertContent: InsertContent): Promise<Content> {
+    const result = await db.insert(content).values(insertContent)
+      .onConflictDoUpdate({
+        target: content.key,
+        set: { value: insertContent.value, updatedAt: new Date() }
+      }).returning();
+    return result[0];
+  }
+
+  async updateContent(key: string, value: string): Promise<Content | undefined> {
+    const result = await db.update(content)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(content.key, key))
+      .returning();
+    return result[0];
+  }
+
+  // Contact submission methods
+  async getContactSubmissions(): Promise<ContactSubmission[]> {
+    return await db.select().from(contactSubmissions);
+  }
+
+  async createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission> {
+    const result = await db.insert(contactSubmissions).values(submission).returning();
+    return result[0];
+  }
+
+  async updateContactSubmissionStatus(id: string, status: string): Promise<ContactSubmission | undefined> {
+    const result = await db.update(contactSubmissions)
+      .set({ status })
+      .where(eq(contactSubmissions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Newsletter subscription methods
+  async getNewsletterSubscriptions(): Promise<NewsletterSubscription[]> {
+    return await db.select().from(newsletterSubscriptions).where(eq(newsletterSubscriptions.isActive, true));
+  }
+
+  async createNewsletterSubscription(subscription: InsertNewsletterSubscription): Promise<NewsletterSubscription> {
+    const existing = await db.select().from(newsletterSubscriptions)
+      .where(eq(newsletterSubscriptions.email, subscription.email));
+    
+    if (existing.length > 0) {
+      const result = await db.update(newsletterSubscriptions)
+        .set({ isActive: true })
+        .where(eq(newsletterSubscriptions.id, existing[0].id))
+        .returning();
+      return result[0];
+    }
+
+    const result = await db.insert(newsletterSubscriptions).values(subscription).returning();
+    return result[0];
+  }
+
+  // Package methods
+  async getPackages(): Promise<Package[]> {
+    return await db.select().from(packages).where(eq(packages.isActive, true));
+  }
+
+  async getPackagesByDestination(destinationId: string): Promise<Package[]> {
+    return await db.select().from(packages)
+      .where(and(eq(packages.destinationId, destinationId), eq(packages.isActive, true)));
+  }
+
+  async getPackage(id: string): Promise<Package | undefined> {
+    const result = await db.select().from(packages).where(eq(packages.id, id));
+    return result[0];
+  }
+
+  async createPackage(packageData: InsertPackage): Promise<Package> {
+    const result = await db.insert(packages).values({
+      ...packageData,
+      isFeatured: packageData.isFeatured ?? false,
+      isActive: packageData.isActive ?? true,
+    }).returning();
+    return result[0];
+  }
+
+  async updatePackage(id: string, updates: Partial<InsertPackage>): Promise<Package | undefined> {
+    const result = await db.update(packages)
+      .set(updates)
+      .where(eq(packages.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePackage(id: string): Promise<boolean> {
+    const result = await db.update(packages)
+      .set({ isActive: false })
+      .where(eq(packages.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  // Gallery Image methods
+  async getGalleryImages(): Promise<GalleryImage[]> {
+    return await db.select().from(galleryImages);
+  }
+
+  async getApprovedGalleryImages(): Promise<GalleryImage[]> {
+    return await db.select().from(galleryImages).where(eq(galleryImages.isApproved, true));
+  }
+
+  async createGalleryImage(imageData: InsertGalleryImage): Promise<GalleryImage> {
+    const result = await db.insert(galleryImages).values({
+      ...imageData,
+      isApproved: false,
+    }).returning();
+    return result[0];
+  }
+
+  async approveGalleryImage(id: string): Promise<GalleryImage | undefined> {
+    const result = await db.update(galleryImages)
+      .set({ isApproved: true })
+      .where(eq(galleryImages.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteGalleryImage(id: string): Promise<boolean> {
+    const result = await db.delete(galleryImages)
+      .where(eq(galleryImages.id, id))
+      .returning();
+    return result.length > 0;
+  }
+}
+
+// Function to initialize database with default data
+async function initializeDatabase() {
+  try {
+    // Check if admin user exists
+    const existingUser = await db.select().from(users).where(eq(users.username, "admin"));
+    
+    if (existingUser.length === 0) {
+      // Create admin user
+      await db.insert(users).values({
+        username: "admin",
+        password: "8709612003" // Your current password
+      });
+      console.log("Admin user created with password: 8709612003");
+    }
+
+    // Initialize default content if not exists
+    const existingContent = await db.select().from(content).limit(1);
+    if (existingContent.length === 0) {
+      const defaultContentData = [
+        { key: "site.name", value: "TTravel Hospitality" },
+        { key: "hero.title", value: "Explore the World with TTRAVE" },
+        { key: "hero.subtitle", value: "Book your next adventure with us!" },
+        { key: "company.name", value: "TTravel Hospitality" },
+        { key: "contact.phone", value: "+91 8100331032" },
+        { key: "contact.email", value: "ttrave.travelagency@gmail.com" },
+        { key: "contact.address", value: "B-12, Shop No. - 111/19, Saptaparni Market, Kalyani Central Park - ward no. 11, Nadia- 741235, West Bengal, India" },
+        { key: "social.facebook", value: "#" },
+        { key: "social.instagram", value: "#" },
+        { key: "social.linkedin", value: "#" },
+        { key: "social.twitter", value: "#" },
+        { key: "inquiry.url", value: "https://forms.gle/your-inquiry-form-id" },
+        { key: "inquiry.button.text", value: "Enquire Now" },
+        { key: "about.hero.title", value: "About TTravel Hospitality" },
+        { key: "about.hero.subtitle", value: "Your trusted partner for unforgettable travel experiences" },
+        { key: "about.who.title", value: "Who We Are" },
+        { key: "about.who.description1", value: "TTravel Hospitality is a premier travel agency dedicated to creating extraordinary travel experiences. With over a decade of expertise in the travel industry, we specialize in both domestic and international travel packages that cater to every traveler's dreams." },
+        { key: "about.who.description2", value: "Our team of experienced travel consultants works tirelessly to ensure that every journey you take with us is seamless, memorable, and perfectly tailored to your preferences. From cultural expeditions to adventure tours, we have something special for everyone." },
+        { key: "about.who.image", value: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop" },
+        { key: "about.values.title", value: "Our Core Values" },
+        { key: "about.mission.title", value: "Our Mission" },
+        { key: "about.mission.description", value: "To provide exceptional travel experiences that create lasting memories and foster cultural understanding through personalized service and attention to detail." },
+        { key: "about.vision.title", value: "Our Vision" },
+        { key: "about.vision.description", value: "To be the leading travel agency that connects people with the world's most beautiful destinations while promoting sustainable and responsible tourism practices." },
+        { key: "about.values.description.title", value: "Our Values" },
+        { key: "about.values.description", value: "Integrity, Excellence, Customer Focus, Innovation, and Sustainability guide every decision we make and every service we provide to our valued customers." },
+      ];
+
+      await db.insert(content).values(defaultContentData);
+      console.log("Default content initialized");
+    }
+    
+    console.log("Database initialization completed");
+  } catch (error) {
+    console.error("Database initialization failed:", error);
+  }
+}
+
+// Use database storage instead of memory storage
+export const storage = new DbStorage();
+
+// Initialize database on startup
+initializeDatabase();
