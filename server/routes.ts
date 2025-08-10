@@ -255,14 +255,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newPassword: z.string().min(6)
       }).parse(req.body);
       
-      // In a real app, you'd validate the current password against a hashed version
-      // For this demo, we'll use the simple admin password
-      if (currentPassword !== "admin123") {
+      // Get the current user from session
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Validate current password
+      if (currentPassword !== user.password) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
       
-      // In production, you'd hash the new password and store it in database
-      // For now, we'll just simulate success
+      // Update password in storage
+      const updatedUser = await storage.updateUserPassword(userId, newPassword);
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update password" });
+      }
+      
       res.json({ success: true, message: "Password changed successfully" });
     } catch (error) {
       if (error instanceof z.ZodError) {
