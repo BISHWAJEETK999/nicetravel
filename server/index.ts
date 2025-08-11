@@ -108,5 +108,11 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen(port, '0.0.0.0', () => {
     log(`serving on port ${port}`);
-});
+    
+    // For Railway deployment, log additional startup information
+    if (process.env.NODE_ENV === "production") {
+      console.log(`✅ Server ready for health checks at http://0.0.0.0:${port}/health`);
+      console.log(`✅ Railway deployment startup completed successfully`);
+    }
+  });
 })();

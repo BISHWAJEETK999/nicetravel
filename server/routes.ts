@@ -475,12 +475,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Health check endpoint for Railway deployment
+  // Health check endpoint for Railway deployment - responds immediately
   app.get("/health", (req, res) => {
-    res.status(200).json({ 
+    // Always respond healthy quickly for Railway health checks
+    res.set({
+      'Cache-Control': 'no-cache',
+      'Content-Type': 'application/json'
+    }).status(200).json({ 
       status: "healthy", 
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "development"
+      environment: process.env.NODE_ENV || "development",
+      port: process.env.PORT || "5000",
+      uptime: process.uptime()
     });
   });
 
