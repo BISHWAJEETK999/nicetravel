@@ -745,17 +745,18 @@ const databaseUrl = process.env.DATABASE_URL;
 const isProduction = process.env.NODE_ENV === "production";
 
 if (databaseUrl && isProduction) {
-  console.log("Using Neon database storage for production environment");
+  console.log("🗄️ Using Neon database storage for production environment");
+  console.log(`🔗 Database URL configured: ${databaseUrl ? 'Yes' : 'No'}`);
   storage = new DbStorage();
   
   // Initialize database with default data, but don't block server startup
   initializeDatabase().catch((error) => {
-    console.warn("Database initialization failed, but server will continue:", error.message);
+    console.warn("⚠️ Database initialization failed, but server will continue:", error.message);
     // In production, if database fails, we still keep the DbStorage 
     // The actual database connection will be retried on each request
   });
 } else {
-  console.log("Using MemStorage for development environment");
+  console.log("🔧 Using MemStorage for development environment");
   storage = new MemStorage();
 }
 

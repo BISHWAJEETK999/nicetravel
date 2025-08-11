@@ -2,15 +2,18 @@
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm ci --include=dev"]
 
 [phases.build]
 cmds = [
+  "echo '🔨 Starting build process...'",
   "npm run build",
+  "echo '📁 Checking build output structure...'",
   "ls -la dist/",
-  "if [ -d 'dist/public' ]; then echo 'Moving files from dist/public to dist/'; cp -r dist/public/* dist/ && rm -rf dist/public; fi",
+  "if [ -d 'dist/public' ]; then echo '📂 Moving static files...'; cp -r dist/public/* dist/ && rm -rf dist/public; fi",
   "ls -la dist/",
-  "echo 'Build completed successfully'"
+  "echo '✅ Build process completed successfully'",
+  "npm prune --production"
 ]
 
 [start]

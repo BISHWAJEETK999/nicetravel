@@ -106,13 +106,24 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  
+  // Enhanced Railway deployment support
   server.listen(port, '0.0.0.0', () => {
     log(`serving on port ${port}`);
     
-    // For Railway deployment, log additional startup information
+    // Railway-specific logging and health check preparation
     if (process.env.NODE_ENV === "production") {
-      console.log(`✅ Server ready for health checks at http://0.0.0.0:${port}/health`);
-      console.log(`✅ Railway deployment startup completed successfully`);
+      console.log(`🚀 Production server started successfully`);
+      console.log(`✅ Health endpoint: http://0.0.0.0:${port}/health`);
+      console.log(`✅ Environment: ${process.env.NODE_ENV}`);
+      console.log(`✅ Server binding: 0.0.0.0:${port}`);
+      console.log(`✅ Railway deployment ready for health checks`);
+    }
+  }).on('error', (err) => {
+    console.error('❌ Server failed to start:', err);
+    if (process.env.NODE_ENV === "production") {
+      console.error('❌ Railway deployment failed - server binding error');
+      process.exit(1);
     }
   });
 })();
