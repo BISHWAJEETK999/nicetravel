@@ -737,7 +737,24 @@ async function initializeDatabase() {
   }
 }
 
-// Use memory storage for VS Code development (better compatibility)
-export const storage = new MemStorage();
+// Use database storage if available, otherwise use memory storage
+let storage: IStorage;
 
-console.log("Using MemStorage for VS Code development environment");
+// Check if we have a database URL AND we're in production
+const databaseUrl = process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === "production";
+
+if (databaseUrl && isProduction) {
+  console.log("Using Neon database storage for production environment");
+  storage = new DbStorage();
+  
+  // Initialize database with default data
+  initializeDatabase().catch((error) => {
+    console.error("Database initialization failed in production:", error);
+  });
+} else {
+  console.log("Using MemStorage for development environment");
+  storage = new MemStorage();
+}
+
+export { storage };

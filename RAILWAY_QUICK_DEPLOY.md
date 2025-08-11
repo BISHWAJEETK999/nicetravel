@@ -3,8 +3,10 @@
 ## ✅ What's Fixed
 - Build dependencies (Vite now available during Railway build)
 - Server binding (`0.0.0.0` for Railway compatibility) 
-- Database configuration (automatic PostgreSQL detection)
+- Database configuration (automatic PostgreSQL detection vs MemStorage)
 - Static file serving (files moved from `dist/public/` to `dist/`)
+- Health check endpoint (`/health`) for Railway deployment monitoring
+- Storage system auto-detection (uses real database when DATABASE_URL exists)
 
 ## 🚀 Deploy to Railway (3 Steps)
 

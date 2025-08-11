@@ -23,10 +23,11 @@ RUN if [ -d "dist/public" ]; then cp -r dist/public/* dist/ && rm -rf dist/publi
 RUN npm prune --production
 
 # Expose port
-EXPOSE 5000
+EXPOSE 8080
 
 # Set production environment
 ENV NODE_ENV=production
+ENV PORT=8080
 
 # Start the application
 CMD ["npm", "start"]
