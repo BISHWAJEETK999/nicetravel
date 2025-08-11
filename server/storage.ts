@@ -1,4 +1,6 @@
-import { type User, type InsertUser, type Destination, type InsertDestination, type Content, type InsertContent, type ContactSubmission, type InsertContactSubmission, type NewsletterSubscription, type InsertNewsletterSubscription, type Package, type InsertPackage, type GalleryImage, type InsertGalleryImage } from "@shared/schema";
+import { users, destinations, content, contactSubmissions, newsletterSubscriptions, packages, galleryImages, type User, type InsertUser, type Destination, type InsertDestination, type Content, type InsertContent, type ContactSubmission, type InsertContactSubmission, type NewsletterSubscription, type InsertNewsletterSubscription, type Package, type InsertPackage, type GalleryImage, type InsertGalleryImage } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -737,34 +739,13 @@ async function initializeDatabase() {
   }
 }
 
-// Use database storage if available, otherwise use memory storage
-let storage: IStorage;
+// For Railway - always use database
+console.log("🚀 Railway deployment - initializing database storage...");
+export const storage = new DbStorage();
 
-// Check if we have a database URL AND we're in production
-const databaseUrl = process.env.DATABASE_URL;
-const isProduction = process.env.NODE_ENV === "production";
-
-// For Railway deployment - use MemStorage if no database URL or if database fails
-if (databaseUrl) {
-  console.log("Database URL provided, attempting database connection...");
-  try {
-    storage = new DbStorage();
-    
-    // Test database connection
-    initializeDatabase().then(() => {
-      console.log("Database connection successful - using DbStorage");
-    }).catch((error) => {
-      console.warn("Database connection failed, falling back to MemStorage:", error.message);
-      // Fallback to memory storage for Railway deployment
-      storage = new MemStorage();
-    });
-  } catch (error) {
-    console.warn("Database setup failed, using MemStorage:", error);
-    storage = new MemStorage();
-  }
-} else {
-  console.log("No database URL provided - using MemStorage");
-  storage = new MemStorage();
-}
-
-export { storage };
+// Initialize database with Railway
+initializeDatabase().catch((error) => {
+  console.error("❌ Railway database initialization failed:", error);
+  // Don't fallback to memory - Railway needs database
+  process.exit(1);
+});

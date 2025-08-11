@@ -6,6 +6,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 
+// Set Railway database URL as environment variable (correct region: ap-southeast-1)
+process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_wBYtJn5Vh0IA@ep-long-mode-a179pxgk-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+
 // Get current file directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

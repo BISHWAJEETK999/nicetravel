@@ -1,18 +1,9 @@
-[phases.setup]
-nixPkgs = ["nodejs-18_x", "npm-9_x"]
-
-[phases.install]
-cmds = ["npm ci --include=dev"]
-
 [phases.build]
-cmds = [
-  "npm run build",
-  "if [ -d 'dist/public' ]; then cp -r dist/public/* dist/ && rm -rf dist/public; fi",
-  "npm prune --production"
-]
+cmds = ["npm ci", "npm run build"]
 
-[start]
-cmd = "npm start"
+[phases.start]
+cmd = "node dist/index.js"
 
 [variables]
 NODE_ENV = "production"
+NPM_CONFIG_PRODUCTION = "false"

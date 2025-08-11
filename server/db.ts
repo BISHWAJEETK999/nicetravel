@@ -1,31 +1,18 @@
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import * as schema from "@shared/schema";
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
 
-// Use environment variable to determine if we should use real database
-const databaseUrl = process.env.DATABASE_URL;
+neonConfig.webSocketConstructor = ws;
 
-let db: any = null;
-let pool: any = null;
+// Railway DATABASE_URL: postgresql://neondb_owner:npg_wBYtJn5Vh0IA@ep-long-mode-a179pxgk-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_wBYtJn5Vh0IA@ep-long-mode-a179pxgk-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
 
-if (databaseUrl) {
-  // Production: Use Neon database
-  console.log("🗄️ Using Neon database for production environment");
-  console.log(`🔗 Connecting to database...`);
-  try {
-    pool = neon(databaseUrl);
-    db = drizzle(pool, { schema });
-    console.log("✅ Database connection established");
-  } catch (error) {
-    console.error("❌ Database connection failed:", error);
-    db = null;
-    pool = null;
-  }
-} else {
-  // Development: Use in-memory storage
-  console.log("🔧 Using in-memory storage for development environment");
-  db = null;
-  pool = null;
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
 }
 
-export { db, pool };
+console.log("🗄️ Initializing Neon database connection for Railway...");
+
+export const pool = new Pool({ connectionString: DATABASE_URL });
+export const db = drizzle({ client: pool, schema });
