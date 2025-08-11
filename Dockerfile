@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy application code
 COPY . .
@@ -18,6 +18,9 @@ RUN npm run build
 
 # Move static files to correct location for serving
 RUN if [ -d "dist/public" ]; then cp -r dist/public/* dist/ && rm -rf dist/public; fi
+
+# Remove dev dependencies after build
+RUN npm prune --production
 
 # Expose port
 EXPOSE 5000
