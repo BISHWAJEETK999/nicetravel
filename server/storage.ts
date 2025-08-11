@@ -737,8 +737,7 @@ async function initializeDatabase() {
   }
 }
 
-// Use database storage instead of memory storage
-export const storage = new DbStorage();
+// Use memory storage for VS Code development (better compatibility)
+export const storage = new MemStorage();
 
-// Initialize database on startup
-initializeDatabase();
+console.log("Using MemStorage for VS Code development environment");
