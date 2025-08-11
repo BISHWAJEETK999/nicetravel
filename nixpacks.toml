@@ -7,7 +7,10 @@ cmds = ["npm ci"]
 [phases.build]
 cmds = [
   "npm run build",
-  "if [ -d 'dist/public' ]; then cp -r dist/public/* dist/ && rm -rf dist/public; fi"
+  "ls -la dist/",
+  "if [ -d 'dist/public' ]; then echo 'Moving files from dist/public to dist/'; cp -r dist/public/* dist/ && rm -rf dist/public; fi",
+  "ls -la dist/",
+  "echo 'Build completed successfully'"
 ]
 
 [start]

@@ -2,7 +2,18 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get current file directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Simple logging function
+function log(message: string) {
+  const timestamp = new Date().toLocaleTimeString();
+  console.log(`${timestamp} [express] ${message}`);
+}
 
 declare module "express-session" {
   interface SessionData {
@@ -73,10 +84,21 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  if (process.env.NODE_ENV === "production") {
+    // Serve static files from dist directory in production
+    app.use(express.static(__dirname, { index: false }));
+    
+    // Serve index.html for all non-API routes (SPA fallback)
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith("/api")) {
+        return next();
+      }
+      res.sendFile(path.join(__dirname, "index.html"));
+    });
   } else {
-    serveStatic(app);
+    // Development mode - dynamic import to avoid production issues
+    const { setupVite } = await import("./vite.js");
+    await setupVite(app, server);
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
