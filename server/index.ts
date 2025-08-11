@@ -4,6 +4,7 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 // Get current file directory
 const __filename = fileURLToPath(import.meta.url);
@@ -71,15 +72,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  console.log("🚀 Starting server initialization...");
+  
+  try {
+    const server = await registerRoutes(app);
+    console.log("✅ Routes registered successfully");
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      console.error("❌ Express error:", err);
+      res.status(status).json({ message });
+    });
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
@@ -93,7 +97,20 @@ app.use((req, res, next) => {
       if (req.path.startsWith("/api")) {
         return next();
       }
-      res.sendFile(path.join(__dirname, "index.html"));
+      const indexPath = path.join(__dirname, "index.html");
+      console.log(`📄 Serving index.html from: ${indexPath}`);
+      try {
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          console.error(`❌ index.html not found at: ${indexPath}`);
+          console.log(`📁 Files in ${__dirname}:`, fs.readdirSync(__dirname));
+          res.status(404).send("Application files not found");
+        }
+      } catch (error) {
+        console.error(`❌ Error serving static files:`, error);
+        res.status(500).send("Server error");
+      }
     });
   } else {
     // Development mode - dynamic import to avoid production issues
@@ -126,4 +143,16 @@ app.use((req, res, next) => {
       process.exit(1);
     }
   });
-})();
+  
+  } catch (error) {
+    console.error('❌ Server initialization failed:', error);
+    if (process.env.NODE_ENV === "production") {
+      process.exit(1);
+    }
+  }
+})().catch((error) => {
+  console.error('❌ Unhandled server error:', error);
+  if (process.env.NODE_ENV === "production") {
+    process.exit(1);
+  }
+});

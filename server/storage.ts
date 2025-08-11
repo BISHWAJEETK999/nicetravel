@@ -744,19 +744,26 @@ let storage: IStorage;
 const databaseUrl = process.env.DATABASE_URL;
 const isProduction = process.env.NODE_ENV === "production";
 
-if (databaseUrl && isProduction) {
-  console.log("🗄️ Using Neon database storage for production environment");
-  console.log(`🔗 Database URL configured: ${databaseUrl ? 'Yes' : 'No'}`);
-  storage = new DbStorage();
-  
-  // Initialize database with default data, but don't block server startup
-  initializeDatabase().catch((error) => {
-    console.warn("⚠️ Database initialization failed, but server will continue:", error.message);
-    // In production, if database fails, we still keep the DbStorage 
-    // The actual database connection will be retried on each request
-  });
+// For Railway deployment - use MemStorage if no database URL or if database fails
+if (databaseUrl) {
+  console.log("Database URL provided, attempting database connection...");
+  try {
+    storage = new DbStorage();
+    
+    // Test database connection
+    initializeDatabase().then(() => {
+      console.log("Database connection successful - using DbStorage");
+    }).catch((error) => {
+      console.warn("Database connection failed, falling back to MemStorage:", error.message);
+      // Fallback to memory storage for Railway deployment
+      storage = new MemStorage();
+    });
+  } catch (error) {
+    console.warn("Database setup failed, using MemStorage:", error);
+    storage = new MemStorage();
+  }
 } else {
-  console.log("🔧 Using MemStorage for development environment");
+  console.log("No database URL provided - using MemStorage");
   storage = new MemStorage();
 }
 
